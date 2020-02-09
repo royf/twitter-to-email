@@ -182,7 +182,6 @@ func fetchTweets() error {
 		}
 	}
 
-    sinceID -= 1
     fmt.Printf("Getting new tweets since %d\n", sinceID)
 	newTweets, err := getNewTweets(sinceID)
 
@@ -223,14 +222,14 @@ func emailTweets(tweets []twitter.Tweet) error {
 		},
 		Message: &ses.Message{
 			Body: &ses.Body{
-				Text: &ses.Content{
+				Html: &ses.Content{
 					Charset: aws.String("UTF-8"),
 					Data:    aws.String(builder.String()),
 				},
 			},
 			Subject: &ses.Content{
 				Charset: aws.String("UTF-8"),
-				Data:    aws.String(fmt.Sprintf("Tweets from the past 8h (%d)", len(tweets))),
+				Data:    aws.String("Tweets from the past 8h"),
 			},
 		},
 		Source: email,
@@ -245,17 +244,17 @@ func emailTweets(tweets []twitter.Tweet) error {
 func buildTweet(tweet *twitter.Tweet) string {
 	builder := strings.Builder{}
     builder.WriteString(`
-<div class="whole">
+<div style="margin-bottom: 10px; font: 15px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, 'Helvetica Neue', sans-serif;">
     `)
     if tweet.RetweetedStatus != nil {
         html := `
-  <div class="retweet">
-    <svg viewBox="0 0 24 24" class="retweet-icon">
+  <div style="display: flex;">
+    <svg viewBox="0 0 24 24" style="color: rgb(45, 51, 55); fill: currentcolor; width: 13px;">
       <g>
         <path d="M23.615 15.477c-.47-.47-1.23-.47-1.697 0l-1.326 1.326V7.4c0-2.178-1.772-3.95-3.95-3.95h-5.2c-.663 0-1.2.538-1.2 1.2s.537 1.2 1.2 1.2h5.2c.854 0 1.55.695 1.55 1.55v9.403l-1.326-1.326c-.47-.47-1.23-.47-1.697 0s-.47 1.23 0 1.697l3.374 3.375c.234.233.542.35.85.35s.613-.116.848-.35l3.375-3.376c.467-.47.467-1.23-.002-1.697zM12.562 18.5h-5.2c-.854 0-1.55-.695-1.55-1.55V7.547l1.326 1.326c.234.235.542.352.848.352s.614-.117.85-.352c.468-.47.468-1.23 0-1.697L5.46 3.8c-.47-.468-1.23-.468-1.697 0L.388 7.177c-.47.47-.47 1.23 0 1.697s1.23.47 1.697 0L3.41 7.547v9.403c0 2.178 1.773 3.95 3.95 3.95h5.2c.664 0 1.2-.538 1.2-1.2s-.535-1.2-1.198-1.2z"></path>
       </g>
     </svg>
-    <a href="%s" class="retweeter">%s Retweeted</a>
+    <a href="%s" style="color: rgb(136, 153, 166); font-size: 14px; margin-left: 105px; text-decoration: none;">%s Retweeted</a>
   </div>
         `
         retweeter_url := fmt.Sprintf("https://twitter.com/%s", tweet.User.ScreenName)
@@ -267,19 +266,19 @@ func buildTweet(tweet *twitter.Tweet) string {
         tweet = tweet.RetweetedStatus
     }
     html := `
-  <div class="tweet">
-    <a href="%s" class="profile-link">
-      <img src="%s" class="profile-image">
+  <div style="display: flex;">
+    <a href="%s" style="border-radius: 9999px; flex-shrink: 0; margin-right: 5px; max-height: 100px; min-width: 100px; overflow: hidden;">
+      <img src="%s" style="height: 100px; width: 100px;">
     </a>
     <div>
       <div>
-        <a href="%s" class="tweeter">
-          <span class="username">%s</span>
-          <span class="handle">@%s</span>
+        <a href="%s" style="color: rgb(45, 51, 55); text-decoration: none;">
+          <span style="font-weight: bold;">%s</span>
+          <span style="color: rgb(136, 153, 166);">@%s</span>
         </a>
       </div>
-      <div class="tweet-text">
-        <a href="%s" class="tweet-link">%s</a>
+      <div style="line-height: 1.3125; width: 50%%;">
+        <a href="%s" style="color: black; text-decoration: none;">%s</a>
       </div>
     </div>
   </div>
