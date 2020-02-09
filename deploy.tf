@@ -5,7 +5,7 @@ provider "aws" {
 # Terraform state in S3
 terraform {
   backend "s3" {
-    bucket = "twitter-to-email-debugjois"
+    bucket = "twitter-digest"
     key    = "terraform/terraform.tfstate"
   }
 }
@@ -13,7 +13,7 @@ terraform {
 # S3 bucket to store tweets
 # FIXME: Change this to a unique value
 locals {
-  twitter_to_email_bucket = "twitter-to-email-debugjois"
+  twitter_to_email_bucket = "twitter-digest"
 }
 
 

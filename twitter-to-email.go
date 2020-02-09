@@ -34,7 +34,7 @@ var (
 
 // formatDate formats dates into a valid S3 key
 func formatDate(date time.Time) string {
-	return fmt.Sprintf("tweets/%d-%02d-%02d/tweets.json", date.Year(), date.Month(), date.Day())
+	return fmt.Sprintf("tweets/%d-%02d-%02d-%d/tweets.json", date.Year(), date.Month(), date.Day(), date.Hour() / 8)
 }
 
 // getTodaysKey returns a valid key name derived from the current date in UTC
@@ -44,7 +44,7 @@ func getTodaysKey() string {
 
 // getYesterdaysKey returns a valid key name derived from the previous day in UTC
 func getYesterdaysKey() string {
-	return formatDate(time.Now().UTC().AddDate(0, 0, -1))
+	return formatDate(time.Now().UTC().Add(time.Hour * (-8)))
 }
 
 // getStoredTweets retrieves stored tweets from a given key in the S3 bucket
@@ -182,6 +182,8 @@ func fetchTweets() error {
 		}
 	}
 
+    sinceID -= 1
+    fmt.Printf("Getting new tweets since %d\n", sinceID)
 	newTweets, err := getNewTweets(sinceID)
 
 	if err != nil {
@@ -204,11 +206,11 @@ func emailTweets(tweets []twitter.Tweet) error {
 
 	for i := len(tweets) - 1; i > -1; i-- {
 		tweet := tweets[i]
-		builder.WriteString(fmt.Sprintf("@%s: %s\nhttps://twitter.com/%s/status/%d\n\n--\n", tweet.User.ScreenName, tweet.FullText, tweet.User.ScreenName, tweet.ID))
+		builder.WriteString(buildTweet(&tweet))
 	}
 
 	svc := ses.New(session.Must(session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1")}, // SES is only available in limited AWS regions, so we hardcode the region here.
+		Region: aws.String("us-west-2")}, // SES is only available in limited AWS regions, so we hardcode the region here.
 	)))
 
 	// Assemble the email.
@@ -228,7 +230,7 @@ func emailTweets(tweets []twitter.Tweet) error {
 			},
 			Subject: &ses.Content{
 				Charset: aws.String("UTF-8"),
-				Data:    aws.String(fmt.Sprintf("Tweets from the past 24h (%d)", len(tweets))),
+				Data:    aws.String(fmt.Sprintf("Tweets from the past 8h (%d)", len(tweets))),
 			},
 		},
 		Source: email,
@@ -237,6 +239,66 @@ func emailTweets(tweets []twitter.Tweet) error {
 	// Attempt to send the email.
 	_, err := svc.SendEmail(input)
 	return err
+}
+
+
+func buildTweet(tweet *twitter.Tweet) string {
+	builder := strings.Builder{}
+    builder.WriteString(`
+<div class="whole">
+    `)
+    if tweet.RetweetedStatus != nil {
+        html := `
+  <div class="retweet">
+    <svg viewBox="0 0 24 24" class="retweet-icon">
+      <g>
+        <path d="M23.615 15.477c-.47-.47-1.23-.47-1.697 0l-1.326 1.326V7.4c0-2.178-1.772-3.95-3.95-3.95h-5.2c-.663 0-1.2.538-1.2 1.2s.537 1.2 1.2 1.2h5.2c.854 0 1.55.695 1.55 1.55v9.403l-1.326-1.326c-.47-.47-1.23-.47-1.697 0s-.47 1.23 0 1.697l3.374 3.375c.234.233.542.35.85.35s.613-.116.848-.35l3.375-3.376c.467-.47.467-1.23-.002-1.697zM12.562 18.5h-5.2c-.854 0-1.55-.695-1.55-1.55V7.547l1.326 1.326c.234.235.542.352.848.352s.614-.117.85-.352c.468-.47.468-1.23 0-1.697L5.46 3.8c-.47-.468-1.23-.468-1.697 0L.388 7.177c-.47.47-.47 1.23 0 1.697s1.23.47 1.697 0L3.41 7.547v9.403c0 2.178 1.773 3.95 3.95 3.95h5.2c.664 0 1.2-.538 1.2-1.2s-.535-1.2-1.198-1.2z"></path>
+      </g>
+    </svg>
+    <a href="%s" class="retweeter">%s Retweeted</a>
+  </div>
+        `
+        retweeter_url := fmt.Sprintf("https://twitter.com/%s", tweet.User.ScreenName)
+        builder.WriteString(fmt.Sprintf(
+            html,
+            retweeter_url,
+            tweet.User.Name,
+        ))
+        tweet = tweet.RetweetedStatus
+    }
+    html := `
+  <div class="tweet">
+    <a href="%s" class="profile-link">
+      <img src="%s" class="profile-image">
+    </a>
+    <div>
+      <div>
+        <a href="%s" class="tweeter">
+          <span class="username">%s</span>
+          <span class="handle">@%s</span>
+        </a>
+      </div>
+      <div class="tweet-text">
+        <a href="%s" class="tweet-link">%s</a>
+      </div>
+    </div>
+  </div>
+</div>
+    `
+    tweeter_url := fmt.Sprintf("https://twitter.com/%s", tweet.User.ScreenName)
+    tweeter_image := strings.Replace(tweet.User.ProfileImageURLHttps, "_normal.", "_reasonably_small.", 1)
+    tweet_url := fmt.Sprintf("https://twitter.com/%s/status/%d", tweet.User.ScreenName, tweet.ID)
+    builder.WriteString(fmt.Sprintf(
+        html,
+        tweeter_url,
+        tweeter_image,
+        tweeter_url,
+        tweet.User.Name,
+        tweet.User.ScreenName,
+        tweet_url,
+        tweet.FullText))
+
+	return builder.String()
 }
 
 // getConfig populates the config variables from a JSON file
