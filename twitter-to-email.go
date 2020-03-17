@@ -99,7 +99,7 @@ func getNewTweets(sinceID int64) ([]twitter.Tweet, error) {
 
 	// Home Timeline
 	homeTimelineParams := &twitter.HomeTimelineParams{
-		SinceID:   sinceID,
+		SinceID:   sinceID + 1,
 		TweetMode: "extended",
 		Count:     200,
 	}
