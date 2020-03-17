@@ -99,7 +99,7 @@ func getNewTweets(sinceID int64) ([]twitter.Tweet, error) {
 
 	// Home Timeline
 	homeTimelineParams := &twitter.HomeTimelineParams{
-		SinceID:   sinceID + 1,
+		SinceID:   sinceID,
 		TweetMode: "extended",
 		Count:     200,
 	}
@@ -156,7 +156,7 @@ func fetchTweets() error {
 
 					sinceID = lastTweet.ID
 
-					storedTweets = []twitter.Tweet{lastTweet}
+					storedTweets = []twitter.Tweet
 					fmt.Println("Uploading last tweet from yesterday for tracking")
 				} else {
 					fmt.Printf("Uploading an empty array to %s\n", today)
