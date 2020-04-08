@@ -156,13 +156,14 @@ func fetchTweets() error {
 
 					sinceID = lastTweet.ID
 
-					storedTweets = nil
+					storedTweets = []twitter.Tweet{lastTweet}
 					fmt.Println("Uploading last tweet from yesterday for tracking")
 				} else {
 					fmt.Printf("Uploading an empty array to %s\n", today)
 				}
 
-				err = uploadTweets(today, storedTweets)
+				// err = uploadTweets(today, storedTweets)
+				err = nil
 				if err != nil {
 					return err
 				}
