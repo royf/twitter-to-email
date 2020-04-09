@@ -162,8 +162,7 @@ func fetchTweets() error {
 					fmt.Printf("Uploading an empty array to %s\n", today)
 				}
 
-				// err = uploadTweets(today, storedTweets)
-				err = nil
+				err = uploadTweets(today, storedTweets)
 				if err != nil {
 					return err
 				}
@@ -204,7 +203,7 @@ func fetchTweets() error {
 func emailTweets(tweets []twitter.Tweet) error {
 	builder := strings.Builder{}
 
-	for i := len(tweets) - 1; i > -1; i-- {
+	for i := len(tweets) - 2; i > -1; i-- {
 		tweet := tweets[i]
 		builder.WriteString(buildTweet(&tweet))
 	}
